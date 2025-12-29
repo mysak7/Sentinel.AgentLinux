@@ -36,11 +36,37 @@ if [ -f "$FLUENT_BIT_TPL" ]; then
     # Using python or perl would be safer for complex passwords, but sticking to bash/sed as standard
     # Use | as delimiter to avoid issues with / in URLs
     
-    cp "$FLUENT_BIT_TPL" "$FLUENT_BIT_CONFIG"
-    
-    sed -i "s|{{KAFKA_USER}}|$PRODUCER_API_KEY|g" "$FLUENT_BIT_CONFIG"
-    sed -i "s|{{KAFKA_PASS}}|$PRODUCER_API_SECRET|g" "$FLUENT_BIT_CONFIG"
-    sed -i "s|{{BROKER_URL}}|$BOOTSTRAP_SERVER|g" "$FLUENT_BIT_CONFIG"
+    # Check if PRODUCER_API_KEY is empty, if so, use 'kafka:9092' style config (Local Dev)
+    if [ -z "$PRODUCER_API_KEY" ]; then
+        echo "[INFO] No Kafka credentials found. Reverting to local Kafka configuration."
+        cat > "$FLUENT_BIT_CONFIG" <<EOF
+[SERVICE]
+    Flush        5
+    Daemon       Off
+    Log_Level    info
+
+[INPUT]
+    Name         tail
+    Path         /var/log/syslog
+    Tag          linux.sysmon
+    # Parser       syslog # Optional: Use if we want structured data
+
+[OUTPUT]
+    Name        kafka
+    Match       *
+    Brokers     kafka:9092
+    Topics      linux-logs
+    Timestamp_Key @timestamp
+    Retry_Limit 5
+EOF
+    else
+        # Production / Cloud Config
+        cp "$FLUENT_BIT_TPL" "$FLUENT_BIT_CONFIG"
+        
+        sed -i "s|{{KAFKA_USER}}|$PRODUCER_API_KEY|g" "$FLUENT_BIT_CONFIG"
+        sed -i "s|{{KAFKA_PASS}}|$PRODUCER_API_SECRET|g" "$FLUENT_BIT_CONFIG"
+        sed -i "s|{{BROKER_URL}}|$BOOTSTRAP_SERVER|g" "$FLUENT_BIT_CONFIG"
+    fi
     
     echo "[INFO] Configuration generated at $FLUENT_BIT_CONFIG"
 else
