@@ -12,7 +12,7 @@
     Name        kafka
     Match       *
     Brokers     {{BROKER_URL}}
-    Topics      linux-logs
+    Topics      threats
     Timestamp_Key @timestamp
     Retry_Limit 5
     rdkafka.security.protocol SASL_SSL
