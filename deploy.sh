@@ -30,16 +30,16 @@ git pull
 # 2. Pull latest Docker image
 echo "[2/4] Pulling latest image..."
 export IMAGE_NAME
-docker compose -f docker-compose.prod.yml pull
+sudo -E docker compose -f docker-compose.prod.yml pull
 
 # 3. Stop existing services
 echo "[3/4] Stopping existing services..."
-docker compose -f docker-compose.prod.yml down
+sudo -E docker compose -f docker-compose.prod.yml down
 
 # 4. Start services
 echo "[4/4] Starting services..."
-docker compose -f docker-compose.prod.yml up -d
+sudo -E docker compose -f docker-compose.prod.yml up -d
 
 echo "---------------------------------------------------"
 echo "Deployment Complete!"
-echo "Check logs with: docker compose -f docker-compose.prod.yml logs -f sentinel-agent"
+echo "Check logs with: sudo docker compose -f docker-compose.prod.yml logs -f sentinel-agent"
