@@ -12,7 +12,11 @@ echo "[INFO] Starting Sentinel Linux Agent..."
 
 # 1. Start rsyslog
 echo "[INFO] Starting rsyslog..."
-service rsyslog start
+if [ -f /etc/init.d/rsyslog ]; then
+    /etc/init.d/rsyslog start
+else
+    rsyslogd
+fi
 
 # 2. Start Sysmon
 if command -v sysmon &> /dev/null; then
