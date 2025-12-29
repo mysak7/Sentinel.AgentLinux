@@ -17,9 +17,12 @@ echo "[INFO] Starting Sentinel Linux Agent..."
 if [ -f "/opt/sentinel/.env" ]; then
     echo "[INFO] Loading .env file..."
     # Export variables from .env, ignoring comments
+    # Handle Windows CRLF line endings to prevent errors
+    sed 's/\r$//' /opt/sentinel/.env > /tmp/env.tmp
     set -a
-    . /opt/sentinel/.env
+    . /tmp/env.tmp
     set +a
+    rm /tmp/env.tmp
 fi
 
 # Generate Fluent Bit Config if template exists
