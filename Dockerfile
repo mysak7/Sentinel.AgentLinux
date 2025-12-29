@@ -13,6 +13,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rsyslog \
     && rm -rf /var/lib/apt/lists/*
 
+# Mock systemctl to prevent errors from packages expecting systemd
+RUN echo '#!/bin/sh' > /usr/bin/systemctl && \
+    echo 'exit 0' >> /usr/bin/systemctl && \
+    chmod +x /usr/bin/systemctl
+
 # 2. Install Sysmon for Linux
 # Register Microsoft Key and Repo
 RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && \
@@ -28,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 3. Install Fluent Bit
 RUN curl https://raw.githubusercontent.com/fluent/fluent-bit/master/install.sh | sh
+ENV PATH="/opt/fluent-bit/bin:$PATH"
 
 # 4. Setup Directories & Configs
 WORKDIR /opt/sentinel

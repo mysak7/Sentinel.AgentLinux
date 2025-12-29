@@ -53,8 +53,10 @@ fi
 echo "[INFO] Starting rsyslog..."
 if [ -f /etc/init.d/rsyslog ]; then
     /etc/init.d/rsyslog start
-else
+elif command -v rsyslogd &> /dev/null; then
     rsyslogd
+else
+    echo "[WARN] rsyslog not found or not startable"
 fi
 
 # 2. Start Sysmon
@@ -68,11 +70,17 @@ else
 fi
 
 # 3. Start Fluent Bit
+# Add /opt/fluent-bit/bin to PATH just in case, though Dockerfile ENV should handle it
+export PATH="/opt/fluent-bit/bin:$PATH"
+
 if command -v fluent-bit &> /dev/null; then
     echo "[INFO] Starting Fluent Bit..."
     # Run in background so we can monitor it or just exec it
     # Ideally, we want this to be the main process.
     exec fluent-bit -c "$FLUENT_BIT_CONFIG"
+elif [ -f "/opt/fluent-bit/bin/fluent-bit" ]; then
+    echo "[INFO] Starting Fluent Bit (explicit path)..."
+    exec /opt/fluent-bit/bin/fluent-bit -c "$FLUENT_BIT_CONFIG"
 else
     echo "[ERROR] Fluent Bit binary not found!"
     exit 1
