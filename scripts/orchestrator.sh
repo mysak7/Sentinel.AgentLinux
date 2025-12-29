@@ -7,8 +7,47 @@ set -e
 CONFIG_DIR="/opt/sentinel/configs"
 SYSMON_CONFIG="$CONFIG_DIR/sysmon.xml"
 FLUENT_BIT_CONFIG="$CONFIG_DIR/fluent-bit.conf"
+FLUENT_BIT_TPL="$CONFIG_DIR/agent-config.tpl"
 
 echo "[INFO] Starting Sentinel Linux Agent..."
+
+# --- Configuration Generation ---
+
+# Load .env if present (useful for local testing)
+if [ -f "/opt/sentinel/.env" ]; then
+    echo "[INFO] Loading .env file..."
+    # Export variables from .env, ignoring comments
+    set -a
+    . /opt/sentinel/.env
+    set +a
+fi
+
+# Generate Fluent Bit Config if template exists
+if [ -f "$FLUENT_BIT_TPL" ]; then
+    echo "[INFO] Generating Fluent Bit configuration from template..."
+    
+    # Check for required variables
+    if [ -z "$PRODUCER_API_KEY" ] || [ -z "$PRODUCER_API_SECRET" ] || [ -z "$BOOTSTRAP_SERVER" ]; then
+        echo "[WARN] One or more Kafka credentials (PRODUCER_API_KEY, PRODUCER_API_SECRET, BOOTSTRAP_SERVER) are missing."
+        echo "[WARN] Using placeholders or default environment variables."
+    fi
+
+    # Escape special characters for sed if necessary, but for now simple replacement
+    # Using python or perl would be safer for complex passwords, but sticking to bash/sed as standard
+    # Use | as delimiter to avoid issues with / in URLs
+    
+    cp "$FLUENT_BIT_TPL" "$FLUENT_BIT_CONFIG"
+    
+    sed -i "s|{{KAFKA_USER}}|$PRODUCER_API_KEY|g" "$FLUENT_BIT_CONFIG"
+    sed -i "s|{{KAFKA_PASS}}|$PRODUCER_API_SECRET|g" "$FLUENT_BIT_CONFIG"
+    sed -i "s|{{BROKER_URL}}|$BOOTSTRAP_SERVER|g" "$FLUENT_BIT_CONFIG"
+    
+    echo "[INFO] Configuration generated at $FLUENT_BIT_CONFIG"
+else
+    echo "[INFO] No template found at $FLUENT_BIT_TPL. Using existing $FLUENT_BIT_CONFIG if it exists."
+fi
+
+# --- End Configuration Generation ---
 
 # 1. Start rsyslog
 echo "[INFO] Starting rsyslog..."
