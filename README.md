@@ -61,3 +61,18 @@ To verify the pipeline is working, check the Kafka topic:
 ```bash
 docker-compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic linux-logs --from-beginning
 ```
+
+## 5. Project Scripts
+
+This project includes several shell scripts to handle building, deploying, and running the agent.
+
+### Deployment & Build
+| Script | Environment | Description |
+| :--- | :--- | :--- |
+| **`build_and_deploy.sh`** | **Local Dev** | **Builds** the Docker image locally from source and restarts containers. Use this for rapid iteration when modifying code. |
+| **`deploy.sh`** | **Production** | **Pulls** the latest pre-built image from the container registry (GHCR) and restarts containers. Updates the git repository first. Uses `docker-compose.prod.yml`. |
+
+### Internal Utilities
+*   **`scripts/orchestrator.sh`**: The container entrypoint. It handles runtime configuration (injecting environment variables into config templates) and manages the startup of rsyslog, Sysmon, and Fluent Bit.
+*   **`test_config_gen.sh`**: A utility script to verify the variable substitution logic (used in `orchestrator.sh`) works correctly without needing to run the full container.
+
