@@ -32,6 +32,7 @@ services:
     pid: host      # Optional: To see host processes instead of just container processes
     volumes:
       - /sys/kernel/debug:/sys/kernel/debug # Required for Sysmon
+      - ./.env:/opt/sentinel/.env
     networks:
       - sentinel-net
 
