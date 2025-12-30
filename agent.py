@@ -73,9 +73,14 @@ def tail_logs(files):
         file_map[proc.stdout.fileno()] = (filepath, proc.stdout)
         print(f"Monitoring {filepath}...")
     
-    # If no files were found and we have journalctl, try monitoring journal
-    if not file_map and has_journalctl:
-        print("No log files found. Attempting to monitor systemd journal...")
+    # If no critical files were found and we have journalctl, try monitoring journal
+    # This handles cases where minor logs (dpkg, alternatives) exist but main system logs don't
+    CRITICAL_LOGS = ["/var/log/auth.log", "/var/log/syslog", "/var/log/kern.log"]
+    monitored_paths = [v[0] for v in file_map.values()]
+    critical_logs_found = any(f in monitored_paths for f in CRITICAL_LOGS)
+
+    if has_journalctl and not critical_logs_found:
+        print("Standard log files missing. Monitoring systemd journal...")
         # Monitor all journal entries (-f for follow, -o cat for plain text)
         proc = subprocess.Popen(
             ['journalctl', '-f', '-o', 'short-iso'],
