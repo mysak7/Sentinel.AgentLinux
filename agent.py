@@ -4,6 +4,8 @@ import socket
 import select
 import subprocess
 import time
+import sys
+import fcntl
 from datetime import datetime
 from dotenv import load_dotenv
 from confluent_kafka import Producer
@@ -73,22 +75,9 @@ def tail_logs(files):
         file_map[proc.stdout.fileno()] = (filepath, proc.stdout)
         print(f"Monitoring {filepath}...")
     
-    # If no critical files were found and we have journalctl, try monitoring journal
-    # This handles cases where minor logs (dpkg, alternatives) exist but main system logs don't
-    CRITICAL_LOGS = ["/var/log/auth.log", "/var/log/syslog", "/var/log/kern.log"]
-    monitored_paths = [v[0] for v in file_map.values()]
-    critical_logs_found = any(f in monitored_paths for f in CRITICAL_LOGS)
-
-    if has_journalctl and not critical_logs_found:
-        print("Standard log files missing. Monitoring systemd journal...")
-        # Monitor all journal entries (-f for follow, -o cat for plain text)
-        proc = subprocess.Popen(
-            ['journalctl', '-f', '-o', 'short-iso'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        poll_obj.register(proc.stdout, select.POLLIN)
-        file_map[proc.stdout.fileno()] = ("journalctl", proc.stdout)
+    # If no files were found and we have journalctl, try monitoring journal
+    if not file_map and has_journalctl:
+        pass # User requested to remove journalctl fallback
 
     while True:
         # Poll for new data (timeout 1000ms)
@@ -100,6 +89,17 @@ def tail_logs(files):
                 yield source, line
 
 def main():
+    # Singleton pattern: Ensure only one instance runs
+    pid_file = '/tmp/sentinel_agent.pid'
+    fp = open(pid_file, 'w')
+    try:
+        fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fp.write(str(os.getpid()))
+        fp.flush()
+    except IOError:
+        print("Another instance of the agent is already running. Exiting.")
+        sys.exit(1)
+
     try:
         producer = Producer(get_kafka_config())
         print(f"Agent started on {HOSTNAME}. Sending to {KAFKA_TOPIC}...")
