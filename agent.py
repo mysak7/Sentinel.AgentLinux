@@ -111,7 +111,11 @@ def main():
         producer = Producer(get_kafka_config())
         print(f"Agent started on {HOSTNAME}. Sending to {KAFKA_TOPIC}...")
         
+        current_pid = str(os.getpid())
         for source, line in tail_logs(LOG_FILES):
+            if f"[{current_pid}]" in line:
+                continue
+
             payload = {
                 "timestamp": datetime.utcnow().isoformat() + "Z",
                 "hostname": HOSTNAME,
@@ -121,7 +125,7 @@ def main():
             
             # Asynchronous produce
             json_payload = json.dumps(payload)
-            print(f"Sending to {KAFKA_TOPIC}: {json_payload}")
+            # print(f"Sending to {KAFKA_TOPIC}: {json_payload}") # Commented out to prevent feedback loop
             producer.produce(
                 KAFKA_TOPIC,
                 key=HOSTNAME,
