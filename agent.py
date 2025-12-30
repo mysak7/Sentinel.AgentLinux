@@ -145,7 +145,7 @@ def main():
             
             # Asynchronous produce
             json_payload = json.dumps(payload)
-            # print(f"Sending to {KAFKA_TOPIC}: {json_payload}") # Commented out to prevent feedback loop
+            print(f"Sending to {KAFKA_TOPIC}: {json_payload}")
             producer.produce(
                 KAFKA_TOPIC,
                 key=HOSTNAME,
