@@ -110,13 +110,35 @@ def tail_logs(files):
 def main():
     # Singleton pattern: Ensure only one instance runs
     pid_file = '/tmp/sentinel_agent.pid'
-    fp = open(pid_file, 'w')
     try:
-        fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        fp.write(str(os.getpid()))
-        fp.flush()
-    except IOError:
-        print("Another instance of the agent is already running. Exiting.")
+        # Open in append mode first to avoid truncating if locked
+        fp = open(pid_file, 'a+')
+        
+        try:
+            # Try to acquire the lock
+            fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            
+            # Lock acquired - now safe to truncate and write
+            fp.seek(0)
+            fp.truncate()
+            fp.write(str(os.getpid()))
+            fp.flush()
+            
+            # Keep file open to maintain lock
+            
+        except IOError as e:
+            # Lock failed or other IO error
+            if e.errno == 11 or e.errno == 35:  # EAGAIN/EACCES/EWOULDBLOCK - Lock held by another process
+                print("Another instance of the agent is already running. Exiting.")
+                sys.exit(1)
+            else:
+                raise
+                
+    except PermissionError:
+        print(f"Error: Cannot write to {pid_file}. Check permissions or ownership.")
+        sys.exit(1)
+    except IOError as e:
+        print(f"Error handling PID file: {e}")
         sys.exit(1)
 
     # Handle SIGTERM for systemd service shutdown
