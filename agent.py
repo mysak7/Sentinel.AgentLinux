@@ -14,9 +14,27 @@ from confluent_kafka import Producer
 # Load environment variables
 load_dotenv(dotenv_path=".env")
 
+def get_linux_distro():
+    """Reads /etc/os-release to identify the Linux distribution."""
+    try:
+        # Check both standard locations
+        for path in ["/etc/os-release", "/usr/lib/os-release"]:
+            if os.path.exists(path):
+                with open(path) as f:
+                    data = {}
+                    for line in f:
+                        if "=" in line:
+                            k, v = line.strip().split("=", 1)
+                            data[k] = v.strip('"')
+                    return data.get("PRETTY_NAME") or data.get("NAME") or "Linux"
+    except Exception:
+        pass
+    return "Linux"
+
 # Configuration
 KAFKA_TOPIC = "threats"
 HOSTNAME = socket.gethostname()
+LINUX_DISTRO = get_linux_distro()
 # Debian/Ubuntu defaults. Change to /var/log/secure and /var/log/messages for RHEL/CentOS.
 # Modern systems with systemd-journald might not have these enabled by default.
 # Fallback to journal/dpkg/alternatives if standard syslog files are missing.
@@ -119,6 +137,8 @@ def main():
             payload = {
                 "timestamp": datetime.utcnow().isoformat() + "Z",
                 "hostname": HOSTNAME,
+                "ProviderName": "Linux",
+                "Distro": LINUX_DISTRO,
                 "log_source": source,
                 "message": line
             }
