@@ -6,6 +6,7 @@ import subprocess
 import time
 import sys
 import fcntl
+import signal
 from datetime import datetime
 from dotenv import load_dotenv
 from confluent_kafka import Producer
@@ -99,6 +100,12 @@ def main():
     except IOError:
         print("Another instance of the agent is already running. Exiting.")
         sys.exit(1)
+
+    # Handle SIGTERM for systemd service shutdown
+    def signal_handler(sig, frame):
+        raise KeyboardInterrupt
+
+    signal.signal(signal.SIGTERM, signal_handler)
 
     try:
         producer = Producer(get_kafka_config())

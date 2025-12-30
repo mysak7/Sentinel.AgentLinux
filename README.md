@@ -44,6 +44,30 @@ sudo python3 agent.py
 
 The agent will start monitoring the configured log files and stream new entries to the `threats` Kafka topic.
 
+## Running as a Service (Systemd)
+
+To run the agent in the background as a system service (automatically starts on boot), use the provided helper script:
+
+1.  **Install the service**:
+    ```bash
+    sudo ./manage_service.sh install
+    ```
+
+2.  **Check status**:
+    ```bash
+    systemctl status sentinel-agent
+    ```
+
+3.  **View logs**:
+    ```bash
+    journalctl -u sentinel-agent -f
+    ```
+
+4.  **Uninstall the service**:
+    ```bash
+    sudo ./manage_service.sh uninstall
+    ```
+
 ## Log Files Monitored
 
 By default, the agent monitors:
